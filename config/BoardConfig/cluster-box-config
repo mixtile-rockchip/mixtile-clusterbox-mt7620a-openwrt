@@ -3397,6 +3397,7 @@ CONFIG_PACKAGE_uclient-fetch=y
 # CONFIG_PACKAGE_bsdiff is not set
 # CONFIG_PACKAGE_bspatch is not set
 # CONFIG_PACKAGE_cal is not set
+CONFIG_PACKAGE_ch343-gpio=y
 # CONFIG_PACKAGE_checkpolicy is not set
 # CONFIG_PACKAGE_chkcon is not set
 # CONFIG_PACKAGE_ct-bugcheck is not set
