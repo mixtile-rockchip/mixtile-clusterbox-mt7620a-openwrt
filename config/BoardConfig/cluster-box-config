@@ -2046,7 +2046,7 @@ CONFIG_PACKAGE_kmod-crypto-sha256=y
 # CONFIG_PACKAGE_kmod-i2c-algo-bit is not set
 # CONFIG_PACKAGE_kmod-i2c-algo-pca is not set
 # CONFIG_PACKAGE_kmod-i2c-algo-pcf is not set
-# CONFIG_PACKAGE_kmod-i2c-core is not set
+CONFIG_PACKAGE_kmod-i2c-core=y
 # CONFIG_PACKAGE_kmod-i2c-designware-pci is not set
 # CONFIG_PACKAGE_kmod-i2c-gpio is not set
 # CONFIG_PACKAGE_kmod-i2c-mux is not set
@@ -2054,7 +2054,7 @@ CONFIG_PACKAGE_kmod-crypto-sha256=y
 # CONFIG_PACKAGE_kmod-i2c-mux-pca9541 is not set
 # CONFIG_PACKAGE_kmod-i2c-mux-pca954x is not set
 # CONFIG_PACKAGE_kmod-i2c-pxa is not set
-# CONFIG_PACKAGE_kmod-i2c-ralink is not set
+CONFIG_PACKAGE_kmod-i2c-ralink=y
 # CONFIG_PACKAGE_kmod-i2c-smbus is not set
 # CONFIG_PACKAGE_kmod-i2c-tiny-usb is not set
 # end of I2C support
