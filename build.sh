@@ -9,11 +9,17 @@ TARGET_PRODUCT_DIR=$COMMON_DIR/config/BoardConfig
 
 echo "TARGET_PRODUCT_DIR: $TARGET_PRODUCT_DIR"
 
-function feed_update_install()
+function feeds_update()
 {
-	echo "============Start feed update && install ============"
+	echo "============Start feeds update ============"
 	echo "=========================================="
 	./scripts/feeds update -a
+}
+
+function feeds_install()
+{
+	echo "============Start feeds install ============"
+	echo "=========================================="
 	./scripts/feeds install -a
 }
 
@@ -120,7 +126,8 @@ for option in ${OPTIONS}; do
 			;;
 		lunch) build_select_board ;;
 		all) build_all ;;
-		update) feed_update_install ;;
+		feeds_update) feeds_update ;;
+		feeds_install) feeds_install ;;
 		allsave) build_allsave ;;
 		cleanall) build_cleanall ;;
 		firmware) build_firmware ;;
