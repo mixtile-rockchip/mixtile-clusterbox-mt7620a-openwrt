@@ -995,7 +995,7 @@ TARGET_DEVICES += ralink_mt7620a-evb
 
 define Device/cluster-box-control-V100
   SOC := mt7620a
-  IMAGE_SIZE := 7872k
+  IMAGE_SIZE := 16064k
   DEVICE_VENDOR := MediaTek
   DEVICE_MODEL := CLUSTER BOX CONTROL
 endef
