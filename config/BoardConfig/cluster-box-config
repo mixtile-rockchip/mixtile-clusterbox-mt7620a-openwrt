@@ -2235,7 +2235,7 @@ CONFIG_BUSYBOX_CONFIG_CRONTAB=y
 # CONFIG_BUSYBOX_CONFIG_I2CGET is not set
 # CONFIG_BUSYBOX_CONFIG_I2CSET is not set
 # CONFIG_BUSYBOX_CONFIG_I2CDUMP is not set
-# CONFIG_BUSYBOX_CONFIG_I2CDETECT is not set
+CONFIG_BUSYBOX_CONFIG_I2CDETECT=y
 # CONFIG_BUSYBOX_CONFIG_I2CTRANSFER is not set
 # CONFIG_BUSYBOX_CONFIG_INOTIFYD is not set
 CONFIG_BUSYBOX_CONFIG_LESS=y
@@ -3503,7 +3503,7 @@ CONFIG_PACKAGE_kmod-ch343=y
 CONFIG_PACKAGE_kmod-gpio-button-hotplug=y
 # CONFIG_PACKAGE_kmod-gpio-mcp23s08 is not set
 # CONFIG_PACKAGE_kmod-gpio-nxp-74hc164 is not set
-# CONFIG_PACKAGE_kmod-gpio-pca953x is not set
+CONFIG_PACKAGE_kmod-gpio-pca953x=y
 # CONFIG_PACKAGE_kmod-gpio-pcf857x is not set
 # CONFIG_PACKAGE_kmod-ikconfig is not set
 # CONFIG_PACKAGE_kmod-it87-wdt is not set
@@ -3525,6 +3525,8 @@ CONFIG_PACKAGE_kmod-gpio-button-hotplug=y
 # CONFIG_PACKAGE_kmod-ramoops is not set
 # CONFIG_PACKAGE_kmod-random-core is not set
 # CONFIG_PACKAGE_kmod-reed-solomon is not set
+CONFIG_PACKAGE_kmod-regmap-core=y
+CONFIG_PACKAGE_kmod-regmap-i2c=y
 # CONFIG_PACKAGE_kmod-rtc-ds1307 is not set
 # CONFIG_PACKAGE_kmod-rtc-ds1374 is not set
 # CONFIG_PACKAGE_kmod-rtc-ds1672 is not set
