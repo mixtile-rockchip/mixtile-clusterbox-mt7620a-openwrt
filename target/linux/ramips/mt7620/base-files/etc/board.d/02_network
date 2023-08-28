@@ -20,6 +20,7 @@ ramips_setup_interfaces()
 	planex,db-wrt01|\
 	planex,mzk-750dhp|\
 	ralink,mt7620a-evb|\
+	cluster-box-control-V100|\
 	ralink,mt7620a-mt7610e-evb|\
 	ralink,mt7620a-v22sg-evb|\
 	sanlinking,d240|\

@@ -1,0 +1,26 @@
+--- a/root/etc/config/firewall
++++ b/root/etc/config/firewall
+@@ -17,9 +17,9 @@ config zone
+ 	option name		wan
+ 	list   network		'wan'
+ 	list   network		'wan6'
+-	option input		REJECT
++	option input		ACCEPT
+ 	option output		ACCEPT
+-	option forward		REJECT
++	option forward		ACCEPT
+ 	option masq		1
+ 	option mtu_fix		1
+ 
+@@ -187,3 +187,11 @@ config rule
+ #	option dest_ip	194.25.2.129
+ #	option dest_port	120
+ #	option proto	tcp
++
++config rule
++	option name		Allow-SSH
++	option target		ACCEPT
++	option src		wan
++	option dest_port	22
++	option proto		tcp
++
