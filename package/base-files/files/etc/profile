@@ -16,7 +16,7 @@ export ENV=/etc/shinit
 
 case "$TERM" in
 	xterm*|rxvt*)
-		export PS1='\[\e[36;1m\]\u@\[\e[36;1m\]\h\[\e[32;1m\]:\[\e[34;1m\]\w\[\e[m\]\$ '$PS1
+		export PS1='\[\e[36;1m\]\u@\[\e[36;1m\]\h\[\e[32;1m\]:\[\e[34;1m\]\w\[\e[m\]\$ '
 		;;
 esac
 
