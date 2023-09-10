@@ -1,0 +1,26 @@
+#!/bin/sh /etc/rc.common
+
+START=01
+STOP=20
+
+set_duty() {
+	for index in 0 1
+	do
+		if [ ! -d "/sys/class/pwm/pwmchip${index}/pwm0" ];then
+			echo '0' > /sys/class/pwm/pwmchip${index}/export
+			sleep 1
+			echo "2000000" > /sys/class/pwm/pwmchip${index}/pwm0/period
+		fi
+
+		echo ${1} > /sys/class/pwm/pwmchip${index}/pwm0/duty_cycle
+		echo '1' > /sys/class/pwm/pwmchip${index}/pwm0/enable
+	done
+}
+
+start() {
+    set_duty 1700000
+}
+
+stop() {
+    printf "\tThe fan is opened\n"
+}

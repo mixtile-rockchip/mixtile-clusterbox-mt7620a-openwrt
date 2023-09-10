@@ -1,0 +1,527 @@
+Index: linux-5.10.161/drivers/pwm/Kconfig
+===================================================================
+--- linux-5.10.161.orig/drivers/pwm/Kconfig
++++ linux-5.10.161/drivers/pwm/Kconfig
+@@ -579,4 +579,12 @@ config PWM_ZX
+ 	  To compile this driver as a module, choose M here: the module
+ 	  will be called pwm-zx.
+ 
++config PWM_GPIO
++	tristate "PWM GPIO support"
++	help
++	  Generic PWM framework driver.
++
++	  To compile this driver as a module, choose M here: the module
++	  will be called pwm-gpio.
+ endif
++
+Index: linux-5.10.161/drivers/pwm/Makefile
+===================================================================
+--- linux-5.10.161.orig/drivers/pwm/Makefile
++++ linux-5.10.161/drivers/pwm/Makefile
+@@ -56,3 +56,4 @@ obj-$(CONFIG_PWM_TWL)		+= pwm-twl.o
+ obj-$(CONFIG_PWM_TWL_LED)	+= pwm-twl-led.o
+ obj-$(CONFIG_PWM_VT8500)	+= pwm-vt8500.o
+ obj-$(CONFIG_PWM_ZX)		+= pwm-zx.o
++obj-$(CONFIG_PWM_GPIO)		+= pwm-gpio.o
+Index: linux-5.10.161/drivers/pwm/pwm-gpio.c
+===================================================================
+--- /dev/null
++++ linux-5.10.161/drivers/pwm/pwm-gpio.c
+@@ -0,0 +1,471 @@
++/**
++ * pwm_gpio.c create by gp
++*/
++#include <linux/clk.h>
++#include <linux/err.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/init.h>
++#include <linux/platform_device.h>
++#include <linux/pwm.h>
++#include <linux/device.h>
++#include <linux/gpio.h>
++#include <linux/delay.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/of_gpio.h>
++#include <linux/of_device.h>
++#include <linux/interrupt.h>
++#include <linux/timer.h>
++
++#include <asm/mipsregs.h>
++#include <asm/mach-ralink/ralink_regs.h>
++#include <asm/mach-ralink/mt7620.h>
++#include <asm/mach-ralink/pinmux.h>
++#include <linux/jiffies.h>
++#include<linux/irq.h>
++
++// #define PWM_DEBUG
++
++//pwm的设备对象
++struct gpio_pwm_chip
++{
++	struct pwm_chip chip;
++	struct mutex lock;
++    struct hrtimer mytimer;
++    struct hrtimer rpm_timer;
++    ktime_t kt;
++	u64 period;
++	u64 duty_cycle;
++    const char *desc;
++    const char *rpm_desc;
++    int gpio;
++    atomic_t pulses;
++    unsigned int rpm;
++	ktime_t sample_start;
++    int rpm_gpio;
++    int irq;
++    int active_low;
++};
++
++struct gpio_pwms_platform_data
++{
++	int npwms;
++    struct gpio_pwm_chip pwms[0];
++};
++
++static struct gpio_pwm_chip *gloabl_pwms_dev = NULL;
++static struct gpio_pwms_platform_data *pdata = NULL;
++static enum hrtimer_restart hrtimer_handler(struct hrtimer *timer);
++static enum hrtimer_restart sample_timer(struct hrtimer *timer);
++
++/* This handler assumes self resetting edge triggered interrupt. */
++static irqreturn_t pulse_handler(int irq, void *dev_id)
++{
++	struct gpio_pwms_platform_data *ctx = dev_id;
++	atomic_inc(&ctx->pwms->pulses);
++	#ifdef PWM_DEBUG
++    printk("fun:%s ctx->pwms->pulses:%d\n", __func__, ctx->pwms->pulses);
++	#endif
++	return IRQ_HANDLED;
++}
++
++static inline struct gpio_pwm_chip *to_gpio_chip(struct pwm_chip *chip)
++{
++	return container_of(chip, struct gpio_pwm_chip, chip);
++}
++
++static inline struct gpio_pwm_chip *timer_to_gpio_chip(struct hrtimer *timer)
++{
++	return container_of(timer, struct gpio_pwm_chip, mytimer);
++}
++
++static int gpio_pwm_request(struct pwm_chip *chip, struct pwm_device *pwm)
++{
++	#ifdef PWM_DEBUG
++	printk("%s %d Call\n", __func__, __LINE__);
++	#endif
++	return 0;
++}
++
++static void gpio_pwm_free(struct pwm_chip *chip, struct pwm_device *pwm)
++{
++	#ifdef PWM_DEBUG
++	printk("%s %d Call\n", __func__, __LINE__);
++	#endif
++}
++
++static int gpio_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
++			 const struct pwm_state *newstate)
++{
++	struct gpio_pwm_chip *gpwm = to_gpio_chip(chip);
++	struct pwm_state *oldstate = &pwm->state;
++	int ret = 0;
++	#ifdef PWM_DEBUG
++	printk("%s %d Call, old->enabled %d new->enabled %d period %lld duty %lld\n", __func__, __LINE__, oldstate->enabled, newstate->enabled,newstate->period, newstate->duty_cycle);
++	#endif
++
++	mutex_lock(&gpwm->lock);
++	if (!newstate->enabled) {
++		if (oldstate->enabled) {
++			// 如果状态是从打开到关闭， GPIO设置为低， 定时器关闭
++			// 使能  - 》 失能 关闭产生，恢复默认
++			hrtimer_cancel(&gpwm->mytimer);
++			hrtimer_cancel(&gpwm->rpm_timer);
++            disable_irq(gpwm->irq);
++			gpio_set_value(gpwm->gpio, 0);
++			#ifdef PWM_DEBUG
++			printk("%s %d cancel timer\n", __func__, __LINE__);
++			#endif
++		}
++		goto end_mutex;
++	}
++	// 设置好周期，占空比
++	gpwm->period = newstate->period;
++	gpwm->duty_cycle = newstate->duty_cycle;
++	
++	if (!oldstate->enabled) {
++		// 如果从关闭到打开
++		// 失能 -》 使能
++		// 初始化定时器
++		hrtimer_init(&gpwm->mytimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
++		hrtimer_init(&gpwm->rpm_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
++        enable_irq(gpwm->irq);
++		// 超时时间
++        gpwm->mytimer.function = hrtimer_handler;
++        gpwm->rpm_timer.function = sample_timer;
++        // 超时时间为  gpwm->period - gpwm->duty_cycle
++        gpwm->kt = ktime_set(0, gpwm->period - gpwm->duty_cycle);
++        gpwm->sample_start = ktime_set(0, jiffies + HZ);
++        // 启动定时器
++        hrtimer_start(&gpwm->mytimer, gpwm->kt, HRTIMER_MODE_REL);
++        hrtimer_start(&gpwm->rpm_timer, gpwm->sample_start, HRTIMER_MODE_REL);
++		#ifdef PWM_DEBUG
++		printk("%s %d Start timer, kt %lld\n", __func__, __LINE__, gpwm->kt);
++		#endif
++	}
++	
++end_mutex:
++	mutex_unlock(&gpwm->lock);
++	return ret;
++}
++
++static int gpio_pwm_capture(struct pwm_chip *chip, struct pwm_device *pwm,
++		       struct pwm_capture *result, unsigned long timeout)
++{
++    struct gpio_pwm_chip *gpwm = to_gpio_chip(chip);
++    int ret = 0;
++    mutex_lock(&gpwm->lock);
++    if (gpwm == NULL) {
++        printk("get pwm source fail\n");
++        goto end_mutex;
++    }
++	result->period = gpwm->period;
++	result->duty_cycle = gpwm->duty_cycle;
++	result->rpm = gpwm->rpm;
++end_mutex:
++	mutex_unlock(&gpwm->lock);
++	return ret;
++}
++
++static const struct pwm_ops gpio_pwm_ops = {
++	.request = gpio_pwm_request,
++	.free = gpio_pwm_free,
++	.apply = gpio_pwm_apply,
++    .capture = gpio_pwm_capture,
++	.owner = THIS_MODULE,
++};
++
++// 定时器到时，回调函数
++static enum hrtimer_restart hrtimer_handler(struct hrtimer *timer)
++{
++	struct gpio_pwm_chip *gpwm = timer_to_gpio_chip(timer);
++	// 如果GPIO输出为低，则改为高
++    if (gpio_get_value(gpwm->gpio) == 0) {
++        // There is no need to pull down when the duty cycle is 100%
++        if (gpwm->duty_cycle != 0) {
++        	// 一个周期内，高电平时间为 gpwm->duty_cycle， 剩下的时间为低电平
++            gpio_set_value(gpwm->gpio, 1);
++            gpwm->kt = ktime_set(0, gpwm->duty_cycle);
++        }
++        // timer overflow
++        // 重新设置超时时间 kt
++        hrtimer_forward_now(&gpwm->mytimer, gpwm->kt);
++    } else {
++    	// 如果GPIO输出为高，则改为低
++        // There is no need to pull up when the duty cycle is 0
++        if (gpwm->duty_cycle != gpwm->period) {
++        	// 一个周期内，高电平时间为 gpwm->duty_cycle， 剩下的时间为低电平
++            gpio_set_value(gpwm->gpio, 0);
++            gpwm->kt = ktime_set(0, gpwm->period - gpwm->duty_cycle);
++
++        }
++        // timer overflow
++       	// 重新设置超时时间 kt
++        hrtimer_forward_now(&gpwm->mytimer, gpwm->kt);
++    }
++
++    return HRTIMER_RESTART;
++}
++
++static enum hrtimer_restart sample_timer(struct hrtimer *timer)
++// void sample_timer(struct timer_list *t)
++{
++    struct gpio_pwm_chip *gpwm = timer_to_gpio_chip(timer);
++	int pulses;
++
++    pulses = atomic_read(&gpwm->pulses);
++    gpwm->rpm = (unsigned int)(pulses * 60);
++    #ifdef PWM_DEBUG
++    printk("file:%s fun:%s line:%d %u\n", __FILE__,  __func__, __LINE__, t->expires);
++    #endif
++	atomic_sub(pulses, &gpwm->pulses);
++    gpwm->sample_start = ktime_set(0, jiffies + HZ);
++    hrtimer_forward_now(&gpwm->mytimer, gpwm->sample_start);
++    return HRTIMER_RESTART;
++}
++static struct gpio_pwms_platform_data * gpio_pwms_get_devtree_pdata(struct device *dev)
++{
++    struct device_node *node, *pp;
++    struct gpio_pwms_platform_data *pdata;
++    struct gpio_pwm_chip *pwm;
++    int error;
++    int npwms;
++    int i = 0;
++    int ret = 0;
++    struct gpio_desc *gdesc = NULL;
++
++    node = dev->of_node;
++    if (!node)
++        return NULL;
++	// 获取设备树中的子节点数量
++    npwms = of_get_child_count(node);
++    if (npwms == 0)
++        return NULL;
++	// 申请结构体内存
++    pdata = devm_kzalloc(dev, sizeof(pdata->npwms) + npwms * sizeof(struct gpio_pwm_chip), GFP_KERNEL);
++    if (!pdata) {
++        error = -ENOMEM;
++        goto err_out;
++    }
++
++    pdata->npwms = npwms;
++    printk("file:%s fun:%s line:%d npwms:%d\n", __FILE__,  __func__, __LINE__, npwms);
++    for_each_child_of_node(node, pp) {
++        enum of_gpio_flags rpm_flags;
++		// 检查子节点是否还有 gpios 属性
++        if (!of_find_property(pp, "rpm,pin", NULL)) {
++            printk( "Found rpm without rpm gpios\n");
++            continue;
++        }
++        pwm = &pdata->pwms[i++];
++        // 获取子节点用到的GPIO
++        pwm->rpm_gpio = of_get_named_gpio_flags(pp, "rpm,pin", 0, &rpm_flags);
++		#ifdef PWM_DEBUG
++        printk("pwm->rpm_gpio = %d,flags = %d",pwm->rpm_gpio, rpm_flags);
++		#endif
++        if (pwm->rpm_gpio < 0) {
++            error = pwm->rpm_gpio;
++            if (error != -ENOENT) {
++                if (error != -EPROBE_DEFER)
++                    dev_err(dev, "Failed to get gpio flags, error: %d\n", error);
++                return ERR_PTR(error);
++            }
++        }
++
++        // 获取标签
++        pwm->rpm_desc = of_get_property(pp, "labels", NULL);
++        if (pwm->rpm_desc == NULL) {
++            dev_err(dev, "Failed to get rpm_desc labels.\n");
++            return NULL;
++        }
++        dev_info(dev, "get rpm labels successed\n");
++
++        gdesc = gpio_to_desc(pwm->rpm_gpio);
++        if (gdesc == NULL) {
++             dev_err(dev, "Failed to get gpio gdesc.\n");
++            return NULL;
++        }
++        dev_info(dev, "get gdesc successed\n");
++
++        // timer_setup(&pdata->pwms->rpm_timer, sample_timer, 0);
++        pwm->irq = gpiod_to_irq(gdesc);
++        if (pwm->irq < 0) {
++            dev_err(dev, "Failed to get request irq\n");
++            return NULL;
++        }
++        dev_info(dev, "get rpm gpio irq successed\n");
++
++        ret = request_irq(pwm->irq, pulse_handler, IRQ_TYPE_EDGE_BOTH, pwm->rpm_desc, pdata);
++        if (ret) {
++            dev_err(dev, "Failed to request interrupt: %d\n", ret);
++            return NULL;
++        }
++        dev_info(dev, "request irq successed\n");
++        disable_irq(pwm->irq);
++        // pdata->pwms->sample_start = ktime_get();
++        // mod_timer(&pdata->pwms->rpm_timer, jiffies + HZ);
++    }
++
++    node = dev->of_node;
++    i = 0;
++    for_each_child_of_node(node, pp) {
++        enum of_gpio_flags flags;
++		// 检查子节点是否还有 gpios 属性
++        if (!of_find_property(pp, "gpios", NULL)) {
++            dev_err(dev, "Found pwm without gpios\n");
++            continue;
++        }
++
++        pwm = &pdata->pwms[i++];
++        pwm->gpio = of_get_gpio_flags(pp, 0, &flags);
++		#ifdef PWM_DEBUG
++        printk("pwm->gpio = %d,flags = %d",pwm->gpio,flags);
++		#endif
++        if (pwm->gpio < 0) {
++            error = pwm->gpio;
++            if (error != -ENOENT) {
++                if (error != -EPROBE_DEFER)
++                    dev_err(dev, "Failed to get gpio flags, error: %d\n", error);
++                return ERR_PTR(error);
++            }
++        } else {
++            pwm->active_low = flags ;
++        }
++        pwm->desc = of_get_property(pp, "label", NULL);
++    }
++    return pdata;
++
++err_out:
++    return ERR_PTR(error);
++}
++
++static int gpio_pwm_probe(struct platform_device *pdev)
++{
++    struct device *dev = &pdev->dev;
++    int error = 0, i;
++    unsigned int gpio, rpm_gpio;
++    struct gpio_pwm_chip *gpwm = NULL;
++	
++    pdata = pdev->dev.platform_data;
++    if (!pdata) {
++        pdata = gpio_pwms_get_devtree_pdata(dev);
++        if (IS_ERR(pdata))
++            return PTR_ERR(pdata);
++        if (!pdata) {
++            printk( "missing platform data\n");
++            return -EINVAL;
++        }
++    }
++	// 申请内存
++    gloabl_pwms_dev = devm_kzalloc(dev, pdata->npwms * sizeof(struct gpio_pwm_chip), GFP_KERNEL);
++    if (!gloabl_pwms_dev) {
++        printk("no memory for gloabl_pwms_dev data\n");
++        return -ENOMEM;
++    }
++	// 设置全局变量
++    memcpy(gloabl_pwms_dev, pdata->pwms, pdata->npwms * sizeof(struct gpio_pwm_chip));
++
++    for (i = 0; i < pdata->npwms; i++) {
++		gpwm = &gloabl_pwms_dev[i];
++		mutex_init(&gpwm->lock);
++		gpwm->chip.dev = dev;
++        gpio = gpwm->gpio;
++        rpm_gpio = gpwm->rpm_gpio;
++
++        if(!gpio_is_valid(gpio))
++            printk("debug:invalid gpio,gpio=0x%x\n", gpio);
++        if(!gpio_is_valid(rpm_gpio))
++            printk("debug:invalid gpio,rpm_gpio=0x%x\n", rpm_gpio);
++		// 设置gpio 为输出，并根据active_low 设置高低电平，此处没什么用处，因为上面已经写死了
++        error = gpio_direction_output(gpio, !((gpwm->active_low == OF_GPIO_ACTIVE_LOW) ? 0 : 1));
++        if (error) {
++            printk("unable to set direction on gpio %u, err=%d\n", gpio, error);
++            return error;
++        }
++		// 向系统申请goio
++        error = devm_gpio_request(dev, gpio, gpwm->desc);
++        if (error) {
++            printk("unable to request gpio %u, err=%d\n", gpio, error);
++			return error;
++        } else {
++            printk("successed to request gpio\n");
++        }
++		// 设置gpio 为输出，并根据active_low 设置高低电平，此处没什么用处，因为上面已经写死了
++        error = gpio_direction_input(rpm_gpio);
++        if (error) {
++            printk("unable to set direction on gpio %u, err=%d\n", gpio, error);
++            return error;
++        }
++		// 向系统申请goio
++        error = devm_gpio_request(dev, rpm_gpio, gpwm->rpm_desc);
++        if (error) {
++            printk("unable to request gpio %u, err=%d\n", rpm_gpio, error);
++			return error;
++        } else {
++            printk("successed to request rpm  gpio\n");
++        }
++		// 填充 pwm_chip 结构体
++		gpwm->chip.ops = &gpio_pwm_ops;
++		gpwm->chip.of_xlate = of_pwm_xlate_with_flags;
++		gpwm->chip.of_pwm_n_cells = 3;
++		// base = -1 由系统分配base
++		gpwm->chip.base = -1;
++		gpwm->chip.npwm = 1;
++		// 添加，成功后会在 /sys/class/pwm 下生成 gpiochip 目录
++		error = pwmchip_add(&gpwm->chip);
++		if (error < 0) {
++			dev_err(&pdev->dev, "failed to add PWM chip: %d\n", error);
++			return error;
++		}
++		#ifdef PWM_DEBUG
++		printk("%s %d New gpwm 0x%lx, gpio %d\n", __func__, __LINE__, (unsigned long)gpwm, gpio);
++		#endif
++    }
++	platform_set_drvdata(pdev, gpwm);
++    return error;
++}
++
++static int gpio_pwm_remove(struct platform_device *pdev)
++{
++	struct gpio_pwm_chip *gpwm = NULL;
++	int i;
++
++    for (i = 0; i < pdata->npwms; i++) {
++		gpwm = &gloabl_pwms_dev[i];
++		pwmchip_remove(&gpwm->chip);
++		#ifdef PWM_DEBUG
++		printk("%s %d Remove gpwm 0x%lx\n", __func__, __LINE__, (unsigned long)gpwm);
++		#endif
++	}
++	
++	return 0;
++}
++
++static struct of_device_id gpio_pwm_of_match[] =
++{
++    {.compatible = "gpio-pwms"},
++    {},
++};
++
++MODULE_DEVICE_TABLE(of, gpio_pwm_of_match);
++
++static struct platform_driver gpio_pwm_driver =
++{
++    .probe = gpio_pwm_probe,
++	.remove = gpio_pwm_remove,
++    .driver = {
++        .name = "gpio-pwms",
++        .owner = THIS_MODULE,
++        .of_match_table = of_match_ptr(gpio_pwm_of_match),
++    }
++};
++
++module_platform_driver(gpio_pwm_driver);
++
++MODULE_DESCRIPTION("Module For PWM GPIO");
++MODULE_AUTHOR("GUO PENG, <engguopeng@buaa.edu.cn>");
++MODULE_LICENSE("GPL");
++/* end pwm_gpio.c */
++
+Index: linux-5.10.161/drivers/pwm/sysfs.c
+===================================================================
+--- linux-5.10.161.orig/drivers/pwm/sysfs.c
++++ linux-5.10.161/drivers/pwm/sysfs.c
+@@ -212,7 +212,7 @@ static ssize_t capture_show(struct devic
+ 	if (ret)
+ 		return ret;
+ 
+-	return sprintf(buf, "%u %u\n", result.period, result.duty_cycle);
++	return sprintf(buf, "%u %u\n", result.period, result.duty_cycle, result.rpm);
+ }
+ 
+ static DEVICE_ATTR_RW(period);
+Index: linux-5.10.161/include/linux/pwm.h
+===================================================================
+--- linux-5.10.161.orig/include/linux/pwm.h
++++ linux-5.10.161/include/linux/pwm.h
+@@ -309,6 +309,7 @@ struct pwm_chip {
+ struct pwm_capture {
+ 	unsigned int period;
+ 	unsigned int duty_cycle;
++	unsigned int rpm;
+ };
+ 
+ #if IS_ENABLED(CONFIG_PWM)
