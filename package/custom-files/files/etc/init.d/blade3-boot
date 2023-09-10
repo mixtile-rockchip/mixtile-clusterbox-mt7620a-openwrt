@@ -1,0 +1,12 @@
+#!/bin/sh /etc/rc.common
+
+START=15
+STOP=20
+
+start() {
+    /bin/nodectl poweron --all
+}
+
+stop() {
+    printf "\tThe node is powered on\n"
+}

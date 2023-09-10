@@ -2679,6 +2679,18 @@ CONFIG_ZABBIX_POSTGRESQL=y
 # end of Boot Loaders
 
 #
+# Custom Component
+#
+CONFIG_PACKAGE_nodectl=y
+# end of Custom Component
+
+#
+# Custom file
+#
+CONFIG_PACKAGE_custom-files=y
+# end of Custom file
+
+#
 # Development
 #
 
