@@ -6,6 +6,7 @@ CMD=`realpath $0`
 COMMON_DIR=`dirname $CMD`
 BOARD_CONFIG=.config
 TARGET_PRODUCT_DIR=$COMMON_DIR/config/BoardConfig
+TARGET_BIN=../bin/targets/ramips/mt7620/openwrt-ramips-mt7620-cluster-box-control-V100-squashfs-sysupgrade.bin
 
 echo "TARGET_PRODUCT_DIR: $TARGET_PRODUCT_DIR"
 
@@ -83,6 +84,10 @@ function build_all()
 	echo "============Start building all============"
 	echo "=========================================="
 	make -j1 V=s
+	if [ ! -d output ];then
+		mkdir output
+	fi
+	ln -snf $TARGET_BIN output/openwrt-cluster-box-control-V100-squashfs-sysupgrade-$(date '+%Y%m%d').bin
 }
 
 function build_kernel()
