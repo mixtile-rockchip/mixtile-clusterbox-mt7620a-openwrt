@@ -3,6 +3,8 @@
 
 START=95
 boot() {
+	echo 1 > /sys/bus/pci/devices/0000:00:00.0/remove
+	echo 1 > /sys/bus/pci/rescan
 	mount_root done
 	rm -f /sysupgrade.tgz && sync
 
