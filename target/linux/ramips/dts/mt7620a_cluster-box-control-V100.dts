@@ -5,7 +5,7 @@
 
 / {
 	compatible = "cluster-box-control-V100","ralink,mt7620a-evb", "ralink,mt7620a-soc";
-	model = "MT7620a CLUSTER BOX CONTROL V100 Board";
+	model = "MC-CLUSTERBOX";
 
 	fan:gpio-pwms {
 		compatible = "gpio-pwms";
