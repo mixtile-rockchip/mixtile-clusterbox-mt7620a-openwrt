@@ -4,7 +4,7 @@ START=15
 STOP=20
 
 start() {
-    /bin/nodectl poweron --all
+    /bin/nodectl reboot --all
 }
 
 stop() {
