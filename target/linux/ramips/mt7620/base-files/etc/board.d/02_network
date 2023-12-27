@@ -8,6 +8,10 @@ ramips_setup_interfaces()
 	local board="$1"
 
 	case $board in
+	cluster-box-control-V100)
+		ucidef_add_switch "switch0" \
+			"0:lan" "1:lan" "2:lan" "3:lan" "4:wan" "6@eth0"
+		;;
 	aigale,ai-br100|\
 	alfa-network,ac1200rm|\
 	asus,rt-n12p|\
@@ -20,7 +24,6 @@ ramips_setup_interfaces()
 	planex,db-wrt01|\
 	planex,mzk-750dhp|\
 	ralink,mt7620a-evb|\
-	cluster-box-control-V100|\
 	ralink,mt7620a-mt7610e-evb|\
 	ralink,mt7620a-v22sg-evb|\
 	sanlinking,d240|\
