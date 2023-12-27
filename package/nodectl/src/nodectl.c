@@ -117,7 +117,7 @@ int node_list() {
     char hint[120];
     char command[50];
     sprintf(hint, "echo \"If no device is found, run the rescan command and then the list command to view the device.\"");
-    sprintf(command, "lspci | grep Rockchip");
+    sprintf(command, "lspci | grep \"^03\\|^04\\|^05\\|^06\"");
     system(hint);
     system(command);
     return 0;
