@@ -35,12 +35,17 @@
 	</div>
 
 	<div class="cbi-page-actions">
-		<input type="submit" value="<%:Login%>" class="btn cbi-button cbi-button-apply" />
+		<input type="submit" value="<%:Login%>" id="login" class="btn cbi-button cbi-button-apply" />
 		<input type="reset" value="<%:Reset%>" class="btn cbi-button cbi-button-reset" />
 	</div>
 </form>
 <script type="text/javascript">//<![CDATA[
 	var input = document.getElementsByName('luci_password')[0];
+	var element = document.getElementById("login");
+	element.addEventListener('click', function() {
+			var username = document.getElementById('luci_username').value;
+			sessionStorage.setItem("user_name", username);
+	});
 	if (input)
 		input.focus();
 //]]></script>
