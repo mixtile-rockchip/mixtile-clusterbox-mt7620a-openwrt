@@ -555,6 +555,17 @@ define Device/hiwifi_hc5861
 endef
 TARGET_DEVICES += hiwifi_hc5861
 
+define Device/cluster-box-control-V120
+  SOC := mt7620a
+  IMAGE_SIZE := 16064k
+  DEVICE_VENDOR := Mixtile
+  DEVICE_MODEL := CLUSTER BOX CONTROL
+  DEVICE_PACKAGES := kmod-mt76x2 kmod-usb2 kmod-usb-ohci kmod-sdhci-mt7620 \
+       kmod-phy-realtek kmod-usb-ledtrig-usbport
+  SUPPORTED_DEVICES := cluster-box-control-V120
+endef
+TARGET_DEVICES += cluster-box-control-V120
+
 define Device/hnet_c108
   SOC := mt7620a
   IMAGE_SIZE := 16064k

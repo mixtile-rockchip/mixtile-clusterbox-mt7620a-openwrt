@@ -179,6 +179,10 @@ ramips_setup_interfaces()
 		ucidef_add_switch "switch0" \
 			"0:lan" "1:lan" "5:wan" "6@eth0"
 		;;
+	cluster-box-control)
+		ucidef_add_switch "switch0" \
+			"0:lan" "1:lan" "5:wan" "6@eth0"
+		;;
 	iodata,wn-ac1167gr|\
 	iodata,wn-ac733gr3|\
 	iptime,a1004ns)
@@ -271,6 +275,10 @@ ramips_setup_macs()
 	local label_mac=""
 
 	case $board in
+	cluster-box-control)
+		wan_mac=$(mtd_get_mac_binary factory 0x10)
+		lan_mac=$(macaddr_add "$wan_mac" 1)
+		;;
 	aigale,ai-br100|\
 	asus,rt-n12p|\
 	asus,rt-n14u|\

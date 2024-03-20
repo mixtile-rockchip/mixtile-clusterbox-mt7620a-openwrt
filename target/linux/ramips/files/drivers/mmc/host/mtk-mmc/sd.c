@@ -1165,6 +1165,10 @@ static int msdc_do_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	//}
 #endif /* end of --- */
 
+	// ignore requests for CMD48.
+	if (cmd->opcode == SD_READ_EXTR_SINGLE)
+		goto done;
+
 	if (!data) {
 		send_type = SND_CMD;
 		if (msdc_do_command(host, cmd, 1, CMD_TIMEOUT) != 0)
