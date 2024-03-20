@@ -151,3 +151,13 @@
 &gpio3 {
 	status = "okay";
 };
+
+&i2c {
+	status = "okay";
+
+	pcf8563: pcf8563@51 {
+		compatible = "haoyu,hym8563";
+		status = "okay";
+		reg = <0x51>;
+	};
+};

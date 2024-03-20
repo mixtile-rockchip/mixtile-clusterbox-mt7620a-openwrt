@@ -2314,11 +2314,11 @@ CONFIG_BUSYBOX_CONFIG_CRONTAB=y
 # CONFIG_BUSYBOX_CONFIG_FLASHCP is not set
 # CONFIG_BUSYBOX_CONFIG_HDPARM is not set
 # CONFIG_BUSYBOX_CONFIG_HEXEDIT is not set
-# CONFIG_BUSYBOX_CONFIG_I2CGET is not set
-# CONFIG_BUSYBOX_CONFIG_I2CSET is not set
-# CONFIG_BUSYBOX_CONFIG_I2CDUMP is not set
-# CONFIG_BUSYBOX_CONFIG_I2CDETECT is not set
-# CONFIG_BUSYBOX_CONFIG_I2CTRANSFER is not set
+CONFIG_BUSYBOX_CONFIG_I2CGET=y
+CONFIG_BUSYBOX_CONFIG_I2CSET=y
+CONFIG_BUSYBOX_CONFIG_I2CDUMP=y
+CONFIG_BUSYBOX_CONFIG_I2CDETECT=y
+CONFIG_BUSYBOX_CONFIG_I2CTRANSFER=y
 # CONFIG_BUSYBOX_CONFIG_INOTIFYD is not set
 CONFIG_BUSYBOX_CONFIG_LESS=y
 CONFIG_BUSYBOX_CONFIG_FEATURE_LESS_MAXLINES=9999999
@@ -3082,7 +3082,7 @@ CONFIG_PACKAGE_kmod-fs-vfat=y
 # CONFIG_PACKAGE_kmod-i2c-algo-bit is not set
 # CONFIG_PACKAGE_kmod-i2c-algo-pca is not set
 # CONFIG_PACKAGE_kmod-i2c-algo-pcf is not set
-# CONFIG_PACKAGE_kmod-i2c-core is not set
+CONFIG_PACKAGE_kmod-i2c-core=y
 # CONFIG_PACKAGE_kmod-i2c-designware-pci is not set
 # CONFIG_PACKAGE_kmod-i2c-gpio is not set
 # CONFIG_PACKAGE_kmod-i2c-mux is not set
@@ -3090,8 +3090,8 @@ CONFIG_PACKAGE_kmod-fs-vfat=y
 # CONFIG_PACKAGE_kmod-i2c-mux-pca9541 is not set
 # CONFIG_PACKAGE_kmod-i2c-mux-pca954x is not set
 # CONFIG_PACKAGE_kmod-i2c-pxa is not set
-# CONFIG_PACKAGE_kmod-i2c-ralink is not set
-# CONFIG_PACKAGE_kmod-i2c-smbus is not set
+CONFIG_PACKAGE_kmod-i2c-ralink=y
+CONFIG_PACKAGE_kmod-i2c-smbus=y
 # CONFIG_PACKAGE_kmod-i2c-tiny-usb is not set
 # end of I2C support
 
