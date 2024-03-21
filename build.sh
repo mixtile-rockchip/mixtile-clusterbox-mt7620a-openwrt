@@ -6,7 +6,7 @@ CMD=`realpath $0`
 COMMON_DIR=`dirname $CMD`
 BOARD_CONFIG=.config
 TARGET_PRODUCT_DIR=$COMMON_DIR/config/BoardConfig
-TARGET_BIN=$COMMON_DIR/bin/targets/ramips/mt7620/openwrt-ramips-mt7620-cluster-box-control-V100-squashfs-sysupgrade.bin
+TARGET_BIN=$COMMON_DIR/bin/targets/ramips/mt7620/openwrt-ramips-mt7620-cluster-box-control-V120-squashfs-sysupgrade.bin
 
 echo "TARGET_PRODUCT_DIR: $TARGET_PRODUCT_DIR"
 
@@ -83,7 +83,7 @@ function build_all()
 {
 	echo "============Start building all============"
 	echo "=========================================="
-	make -j1 V=s
+	make -j16 V=s
 	if [ ! -d output ];then
 		mkdir output
 	fi
@@ -102,6 +102,11 @@ function build_kernel()
 #=========================
 # build targets
 #=========================
+
+if [ ! -f first_run ]; then
+    feeds_update && feeds_install
+    touch first_run
+fi
 
 if echo $@|grep -wqE "help|-h"; then
 	if [ -n "$2" -a "$(type -t usage$2)" == function ]; then
