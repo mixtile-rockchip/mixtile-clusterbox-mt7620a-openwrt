@@ -83,7 +83,7 @@ function build_all()
 {
 	echo "============Start building all============"
 	echo "=========================================="
-	make -j16 V=s
+	make -j1 V=s
 	if [ ! -d output ];then
 		mkdir output
 	fi

@@ -33,3 +33,4 @@ git-src
 .ccache
 .vscode*
 first_run
+/output
