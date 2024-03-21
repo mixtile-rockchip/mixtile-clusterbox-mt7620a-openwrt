@@ -171,4 +171,10 @@
 		status = "okay";
 		reg = <0x51>;
 	};
+
+	pca955500: pca95550@24 {
+		compatible = "nxp,pca9555";
+		status = "okay";
+		reg = <0x24>;
+	};
 };
