@@ -91,6 +91,21 @@ function build_all()
 	# ln -snf $TARGET_BIN output/image-release-clusterbox-openwrt22-$(date '+%Y%m%d').bin
 }
 
+function build_firmware()
+{
+	echo "============Start building firmware============"
+	echo "=========================================="
+
+	cp $COMMON_DIR/other-files $COMMON_DIR/files -a
+	make -j1 V=s
+	if [ ! -d output ];then
+		mkdir output
+	fi
+	cp $TARGET_BIN $COMMON_DIR/output/image-release-clusterbox-openwrt22-$(date '+%Y%m%d').bin
+	# ln -snf $TARGET_BIN output/image-release-clusterbox-openwrt22-$(date '+%Y%m%d').bin
+	rm -rf $COMMON_DIR/files
+}
+
 function build_kernel()
 {
 	echo "============Start building kernel============"
@@ -118,7 +133,7 @@ if echo $@|grep -wqE "help|-h"; then
 	exit 0
 fi
 
-OPTIONS="${@:-allsave}"
+OPTIONS="${@:-all}"
 
 for option in ${OPTIONS}; do
 	echo "processing option: $option"
@@ -139,7 +154,6 @@ for option in ${OPTIONS}; do
 		all) build_all ;;
 		feeds_update) feeds_update ;;
 		feeds_install) feeds_install ;;
-		allsave) build_allsave ;;
 		cleanall) build_cleanall ;;
 		firmware) build_firmware ;;
 		toolchain) build_toolchain ;;
