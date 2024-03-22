@@ -96,6 +96,11 @@ function build_firmware()
 	echo "============Start building firmware============"
 	echo "=========================================="
 
+	if [ ! -f first_run ]; then
+		feeds_update && feeds_install && make download -j8
+		touch first_run
+	fi
+
 	cp $COMMON_DIR/other-files $COMMON_DIR/files -a
 	make -j1 V=s
 	if [ ! -d output ];then
@@ -117,11 +122,6 @@ function build_kernel()
 #=========================
 # build targets
 #=========================
-
-if [ ! -f first_run ]; then
-    feeds_update && feeds_install
-    touch first_run
-fi
 
 if echo $@|grep -wqE "help|-h"; then
 	if [ -n "$2" -a "$(type -t usage$2)" == function ]; then

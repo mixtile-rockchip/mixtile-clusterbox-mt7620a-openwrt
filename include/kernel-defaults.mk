@@ -165,9 +165,18 @@ define Kernel/CompileImage/Initramfs
 	$(CP) $(GENERIC_PLATFORM_DIR)/other-files/init $(TARGET_DIR)/init
 	mkdir -p $(TARGET_DIR)/home/mixtile
 	chown 1000:1000 $(TARGET_DIR)/home/mixtile
+	sed -i '/DISTRIB_RELEASE/d' $(TARGET_DIR)/etc/os-release
+	sed -i '/BUILD_ID/d' $(TARGET_DIR)/etc/os-release
+	sed -i '/VERSION/d' $(TARGET_DIR)/etc/os-release
+	echo "DISTRIB_RELEASE=\"\"" >> $(TARGET_DIR)/etc/os-release
+	echo "VERSION=\"\"" >> $(TARGET_DIR)/etc/os-release
+	echo "BUILD_ID=\"MIXTILE\"" >> $(TARGET_DIR)/etc/os-release
+	sed -i '/DISTRIB_REVISION/d' $(TARGET_DIR)/etc/openwrt_release
 	sed -i '/DISTRIB_DESCRIPTION/d' $(TARGET_DIR)/etc/openwrt_release
+	echo "DISTRIB_REVISION=\"\"" >> $(TARGET_DIR)/etc/openwrt_release
 	echo -n "DISTRIB_DESCRIPTION=\"mixtile-cluster-box-v0.0.3-" >> $(TARGET_DIR)/etc/openwrt_release
 	date "+%Y%m%d"\" >> $(TARGET_DIR)/etc/openwrt_release
+	echo "" > $(TARGET_DIR)/etc/openwrt_version
 	$(if $(SOURCE_DATE_EPOCH),touch -hcd "@$(SOURCE_DATE_EPOCH)" $(TARGET_DIR) $(TARGET_DIR)/init)
 	rm -rf $(KERNEL_BUILD_DIR)/linux-$(LINUX_VERSION)/usr/initramfs_data.cpio*
 ifeq ($(CONFIG_TARGET_ROOTFS_INITRAMFS_SEPARATE),y)

@@ -11,6 +11,8 @@
 		bootargs = "console=ttyS0,115200 root=/dev/mmcblk0p2 rootwait rw";
 	};
 
+	/delete-node/ wmac@10180000;
+
 	aliases {
 		led-boot = &led_system;
 		led-failsafe = &led_system;
