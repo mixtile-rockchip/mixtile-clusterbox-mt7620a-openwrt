@@ -1,0 +1,13 @@
+Index: linux-5.15.150/arch/mips/pci/pci-mt7620.c
+===================================================================
+--- linux-5.15.150.orig/arch/mips/pci/pci-mt7620.c
++++ linux-5.15.150/arch/mips/pci/pci-mt7620.c
+@@ -367,7 +367,7 @@ int pcibios_map_irq(const struct pci_dev
+ 		pci_config_write(dev->bus, 0, PCI_BASE_ADDRESS_0, 4,
+ 				 RALINK_PCI_MEMORY_BASE);
+ 		pci_config_read(dev->bus, 0, PCI_BASE_ADDRESS_0, 4, &val);
+-	} else if ((dev->bus->number == 1) && (slot == 0x0)) {
++	} else if ((dev->bus->number >= 1) && (slot == 0x0)) {
+ 		irq = RALINK_INT_PCIE0;
+ 	} else {
+ 		dev_err(&dev->dev, "no irq found - bus=0x%x, slot = 0x%x\n",

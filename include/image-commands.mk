@@ -25,6 +25,7 @@ endef
 
 define Build/append-kernel
 	dd if=$(IMAGE_KERNEL) >> $@
+	dd if=$(IMAGE_KERNEL) >> $@-sd.bin
 endef
 
 define Build/package-kernel-ubifs
@@ -101,6 +102,7 @@ endef
 
 define Build/append-rootfs
 	dd if=$(IMAGE_ROOTFS) >> $@
+	dd if=$(IMAGE_ROOTFS) >> $@-sd.bin
 endef
 
 define Build/append-squashfs-fakeroot-be

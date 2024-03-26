@@ -49,6 +49,27 @@
 			gpios = <&gpio2 30 GPIO_ACTIVE_HIGH>;
 		};
 	};
+
+	fan:gpio-pwms {
+		compatible = "gpio-pwms";
+		pinctrl-names = "default";
+		#pwm-cells = <3>;
+		status = "okay";
+	
+		fan1 {
+			label = "fan1";
+			gpios = <&gpio2 23 0>;
+			labels = "rpm1";
+			rpm,pin = <&gpio2 21 0>;
+		};
+	
+		fan2 {
+			label = "fan2";
+			gpios = <&gpio2 22 0>;
+			labels = "rpm2";
+			rpm,pin = <&gpio2 20 0>;
+		};
+	};
 };
 
 &spi0 {
