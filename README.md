@@ -8,20 +8,7 @@
 # Ubuntu / Debian
 apt-get install -y build-essential clang flex g++ gawk gcc-multilib gettext git libncurses5-dev libssl-dev python python3-distutils rsync unzip zlib1g-dev file wget swig python3-pip
 ```
-### 2. Build Docker image
 
-```bash
-git clone https://github.com/mixtile-rockchip/build.git
-cd build
-sudo docker build -t blade3-debian-env ./
-```
-```bash
-# View the built docker image
-blade3:mixtile~/build$ sudo docker images
-REPOSITORY          TAG       IMAGE ID       CREATED         SIZE
-blade3-debian-env   latest    ad587023e07a   3 minutes ago   1.7GB
-ubuntu              20.04     83a4bf3bb050   2 weeks ago     72.8MB
-```
 ### 2. Download the source code, update feeds and select configuration
 
 ```bash
@@ -56,5 +43,5 @@ bin/
 output/
 └── image-release-clusterbox-openwrt22-xxxxx.bin
 ```
-### 7. Upgrade Firmware
+### 4. Upgrade Firmware
 [`look here`](https://www.mixtile.com/docs/getting-started-with-cluster-box/)
