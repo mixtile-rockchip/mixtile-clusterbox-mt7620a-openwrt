@@ -1,90 +1,60 @@
-![OpenWrt logo](include/logo.png)
+## Build
 
-OpenWrt Project is a Linux operating system targeting embedded devices. Instead
-of trying to create a single, static firmware, OpenWrt provides a fully
-writable filesystem with package management. This frees you from the
-application selection and configuration provided by the vendor and allows you
-to customize the device through the use of packages to suit any application.
-For developers, OpenWrt is the framework to build an application without having
-to build a complete firmware around it; for users this means the ability for
-full customization, to use the device in ways never envisioned.
+##### First install Linux system, recommended ubuntu:20.04
 
-Sunshine!
+### 1. Install build dependencies
 
-## Development
-
-To build your own firmware you need a GNU/Linux, BSD or MacOSX system (case
-sensitive filesystem required). Cygwin is unsupported because of the lack of a
-case sensitive file system.
-
-### Requirements
-
-You need the following tools to compile OpenWrt, the package names vary between
-distributions. A complete list with distribution specific packages is found in
-the [Build System Setup](https://openwrt.org/docs/guide-developer/build-system/install-buildsystem)
-documentation.
-
+```bash
+# Ubuntu / Debian
+apt-get install -y build-essential clang flex g++ gawk gcc-multilib gettext git libncurses5-dev libssl-dev python python3-distutils rsync unzip zlib1g-dev file wget swig python3-pip
 ```
-binutils bzip2 diff find flex gawk gcc-6+ getopt grep install libc-dev libz-dev
-make4.1+ perl python3.6+ rsync subversion unzip which
+### 2. Build Docker image
+
+```bash
+git clone https://github.com/mixtile-rockchip/build.git
+cd build
+sudo docker build -t blade3-debian-env ./
+```
+```bash
+# View the built docker image
+blade3:mixtile~/build$ sudo docker images
+REPOSITORY          TAG       IMAGE ID       CREATED         SIZE
+blade3-debian-env   latest    ad587023e07a   3 minutes ago   1.7GB
+ubuntu              20.04     83a4bf3bb050   2 weeks ago     72.8MB
+```
+### 2. Download the source code, update feeds and select configuration
+
+```bash
+git clone -b v110 https://github.com/mixtile-rockchip/mixtile-clusterbox-mt7620a-openwrt.git
+
+./build.sh feeds_install
+
+./build.sh cluster-box-config
+
+./build.sh all
 ```
 
-### Quickstart
+### 3. Build output
 
-1. Run `./scripts/feeds update -a` to obtain all the latest package definitions
-   defined in feeds.conf / feeds.conf.default
+```bash
+bin/
+├── packages
+└── targets
+    └── ramips
+        └── mt7620
+            ├── config.buildinfo
+            ├── feeds.buildinfo
+            ├── openwrt-ramips-mt7620-cluster-box-control-V100-initramfs-kernel.bin
+            ├── openwrt-ramips-mt7620-cluster-box-control-v100.manifest
+            ├── openwrt-ramips-mt7620-cluster-box-control-V100-squashfs-sysupgrade.bin
+            ├── packages
+            ├── profiles.json
+            ├── sha256sums
+            └── version.buildinfo
 
-2. Run `./scripts/feeds install -a` to install symlinks for all obtained
-   packages into package/feeds/
 
-3. Run `make menuconfig` to select your preferred configuration for the
-   toolchain, target system & firmware packages.
-
-4. Run `make` to build your firmware. This will download all sources, build the
-   cross-compile toolchain and then cross-compile the GNU/Linux kernel & all chosen
-   applications for your target system.
-
-### Related Repositories
-
-The main repository uses multiple sub-repositories to manage packages of
-different categories. All packages are installed via the OpenWrt package
-manager called `opkg`. If you're looking to develop the web interface or port
-packages to OpenWrt, please find the fitting repository below.
-
-* [LuCI Web Interface](https://github.com/openwrt/luci): Modern and modular
-  interface to control the device via a web browser.
-
-* [OpenWrt Packages](https://github.com/openwrt/packages): Community repository
-  of ported packages.
-
-* [OpenWrt Routing](https://github.com/openwrt/routing): Packages specifically
-  focused on (mesh) routing.
-
-* [OpenWrt Video](https://github.com/openwrt/video): Packages specifically
-  focused on display servers and clients (Xorg and Wayland).
-
-## Support Information
-
-For a list of supported devices see the [OpenWrt Hardware Database](https://openwrt.org/supported_devices)
-
-### Documentation
-
-* [Quick Start Guide](https://openwrt.org/docs/guide-quick-start/start)
-* [User Guide](https://openwrt.org/docs/guide-user/start)
-* [Developer Documentation](https://openwrt.org/docs/guide-developer/start)
-* [Technical Reference](https://openwrt.org/docs/techref/start)
-
-### Support Community
-
-* [Forum](https://forum.openwrt.org): For usage, projects, discussions and hardware advise.
-* [Support Chat](https://webchat.oftc.net/#openwrt): Channel `#openwrt` on **oftc.net**.
-
-### Developer Community
-
-* [Bug Reports](https://bugs.openwrt.org): Report bugs in OpenWrt
-* [Dev Mailing List](https://lists.openwrt.org/mailman/listinfo/openwrt-devel): Send patches
-* [Dev Chat](https://webchat.oftc.net/#openwrt-devel): Channel `#openwrt-devel` on **oftc.net**.
-
-## License
-
-OpenWrt is licensed under GPL-2.0
+output/
+└── image-release-clusterbox-openwrt22-xxxxx.bin
+```
+### 7. Upgrade Firmware
+[`look here`](https://www.mixtile.com/docs/getting-started-with-cluster-box/)
