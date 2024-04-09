@@ -38,8 +38,12 @@ platform_do_upgrade() {
 				of=/dev/mtdblock$idx
 		default_do_upgrade "$1"
 		;;
+	cluster-box-control|\
+	cluster-box-control-V120)
+		dd if=$1 of=/dev/mmcblk0 seek=16 conv=fsync && sync
+		;;
 	*)
-		default_do_upgrade "$1"
+		echo "Unsupported devices"
 		;;
 	esac
 }

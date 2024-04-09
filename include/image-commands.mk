@@ -25,7 +25,10 @@ endef
 
 define Build/append-kernel
 	dd if=$(IMAGE_KERNEL) >> $@
-	dd if=$(IMAGE_KERNEL) >> $@-sd.bin
+	dd if=/dev/zero of=$(subst .bin,-sd.bin,$@) bs=1M count=10 conv=fsync
+	du -sh $(subst .bin,-sd.bin,$@)
+	dd if=$(IMAGE_KERNEL) of=$(subst .bin,-sd.bin,$@) conv=notrunc
+	du -sh $(subst .bin,-sd.bin,$@)
 endef
 
 define Build/package-kernel-ubifs
@@ -98,11 +101,24 @@ define Build/append-metadata
 		ucert -A -c "$@.ucert" -x "$@.sig" ;\
 		fwtool -S "$@.ucert" "$@" ;\
 	}
+
+	$(if $(SUPPORTED_DEVICES),-echo $(call metadata_json) | fwtool -I - $(subst .bin,-sd.bin,$@))
+	sha256sum "$(subst .bin,-sd.bin,$@)" | cut -d" " -f1 > "$(subst .bin,-sd.bin,$@).sha256sum"
+	[ ! -s "$(BUILD_KEY)" -o ! -s "$(BUILD_KEY).ucert" -o ! -s "$(subst .bin,-sd.bin,$@)" ] || { \
+		cp "$(BUILD_KEY).ucert" "$(subst .bin,-sd.bin,$@).ucert" ;\
+		usign -S -m "$(subst .bin,-sd.bin,$@)" -s "$(BUILD_KEY)" -x "$(subst .bin,-sd.bin,$@).sig" ;\
+		ucert -A -c "$(subst .bin,-sd.bin,$@).ucert" -x "$(subst .bin,-sd.bin,$@).sig" ;\
+		fwtool -S "$(subst .bin,-sd.bin,$@).ucert" "$(subst .bin,-sd.bin,$@)" ;\
+	}
+
+	cp $(subst .bin,-sd.bin,$@) $(BIN_DIR)
+	du -sh $(subst .bin,-sd.bin,$@)
 endef
 
 define Build/append-rootfs
 	dd if=$(IMAGE_ROOTFS) >> $@
-	dd if=$(IMAGE_ROOTFS) >> $@-sd.bin
+	dd if=$(IMAGE_ROOTFS) >> $(subst .bin,-sd.bin,$@)
+	du -sh $(subst .bin,-sd.bin,$@)
 endef
 
 define Build/append-squashfs-fakeroot-be
