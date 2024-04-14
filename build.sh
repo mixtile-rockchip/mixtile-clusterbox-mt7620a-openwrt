@@ -6,7 +6,7 @@ CMD=`realpath $0`
 COMMON_DIR=`dirname $CMD`
 BOARD_CONFIG=.config
 TARGET_PRODUCT_DIR=$COMMON_DIR/config/BoardConfig
-TARGET_BIN=$COMMON_DIR/bin/targets/ramips/mt7620/openwrt-ramips-mt7620-cluster-box-control-V120-squashfs-sysupgrade.bin
+TARGET_BIN=$COMMON_DIR/bin/targets/ramips/mt7620/openwrt-ramips-mt7620-cluster-box-control-V120-squashfs-sysupgrade-sd.bin
 
 echo "TARGET_PRODUCT_DIR: $TARGET_PRODUCT_DIR"
 
@@ -87,8 +87,7 @@ function build_all()
 	if [ ! -d output ];then
 		mkdir output
 	fi
-	cp $TARGET_BIN $COMMON_DIR/output/image-release-clusterbox-openwrt22-$(date '+%Y%m%d').bin
-	# ln -snf $TARGET_BIN output/image-release-clusterbox-openwrt22-$(date '+%Y%m%d').bin
+	cp $TARGET_BIN $COMMON_DIR/output/image-release-clusterbox-openwrt23-$(date '+%Y%m%d').bin
 }
 
 function build_firmware()
@@ -106,8 +105,7 @@ function build_firmware()
 	if [ ! -d output ];then
 		mkdir output
 	fi
-	cp $TARGET_BIN $COMMON_DIR/output/image-release-clusterbox-openwrt22-$(date '+%Y%m%d').bin
-	# ln -snf $TARGET_BIN output/image-release-clusterbox-openwrt22-$(date '+%Y%m%d').bin
+	cp $TARGET_BIN $COMMON_DIR/output/image-release-clusterbox-openwrt23-$(date '+%Y%m%d').bin
 	rm -rf $COMMON_DIR/files
 }
 

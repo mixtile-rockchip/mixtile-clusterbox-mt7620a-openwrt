@@ -8,5 +8,6 @@ start() {
 }
 
 stop() {
+    /bin/nodectl poweroff --all
     printf "\tThe node is powered on\n"
 }
