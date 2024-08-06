@@ -1,0 +1,63 @@
+name: Build
+run-name: Building Linux system
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get more disk space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 2048
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Checkout LFS
+        shell: bash
+        run: git lfs fetch && git lfs checkout
+
+      - name: Free up disk space
+        shell: bash
+        run: |
+          sudo rm -rf /usr/share/dotnet && \
+          sudo rm -rf /opt/ghc && \
+          sudo rm -rf "/usr/local/share/boost" && \
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY" 
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          sudo apt-get update && sudo apt-get upgrade -y
+          sudo apt-get install -y build-essential clang flex g++ gawk \
+          gcc-multilib gettext git libncurses5-dev libssl-dev python python3-distutils \
+          rsync unzip zlib1g-dev file wget swig python3-pip && export FORCE_UNSAFE_CONFIGURE=1
+
+      - name: Build image
+        shell: bash
+        run: |
+          sudo ./build.sh feeds_update && \
+          sudo ./build.sh feeds_install && \
+          sudo ./build.sh cluster-box-config && \
+          sudo ./build.sh firmware
+  
+      - name: Upload image
+        uses: actions/upload-artifact@v3
+        with:
+          name: openwrt_image
+          path: output/*
+          if-no-files-found: error
+    
+      - name: Clean cache
+        shell: bash
+        run: sync
