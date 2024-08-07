@@ -40,7 +40,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get upgrade -y
           sudo apt-get install -y build-essential clang flex g++ gawk \
-          gcc-multilib gettext git libncurses5-dev libssl-dev python python3-distutils \
+          gcc-multilib gettext git libncurses5-dev libssl-dev python3-distutils \
           rsync unzip zlib1g-dev file wget swig python3-pip && export FORCE_UNSAFE_CONFIGURE=1
 
       - name: Build image
