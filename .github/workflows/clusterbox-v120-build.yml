@@ -75,10 +75,16 @@ jobs:
           touch first_run
           ./build.sh firmware
 
-      - name: Generate checksums
+      - name: Verify firmware output
+        run: |
+          test -f bin/targets/ramips/mt7620/openwrt-ramips-mt7620-cluster-box-control-V120-squashfs-sysupgrade-sd.bin
+          test -s output/image-release-clusterbox-openwrt23-$(date '+%Y%m%d').bin
+
+      - name: Generate artifact manifest
         run: |
           mkdir -p output
-          find output -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > output/sha256sums.txt
+          find output -maxdepth 1 -type f | sort > output/artifacts.txt
+          sha256sum output/* > output/sha256sums.txt
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4

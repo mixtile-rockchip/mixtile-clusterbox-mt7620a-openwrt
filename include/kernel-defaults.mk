@@ -164,7 +164,6 @@ define Kernel/CompileImage/Initramfs
 	$(call Kernel/Configure/Initramfs)
 	$(CP) $(GENERIC_PLATFORM_DIR)/other-files/init $(TARGET_DIR)/init
 	mkdir -p $(TARGET_DIR)/home/mixtile
-	chown 1000:1000 $(TARGET_DIR)/home/mixtile
 	sed -i '/DISTRIB_RELEASE/d' $(TARGET_DIR)/etc/os-release
 	sed -i '/BUILD_ID/d' $(TARGET_DIR)/etc/os-release
 	sed -i '/VERSION/d' $(TARGET_DIR)/etc/os-release
