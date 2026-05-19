@@ -1,0 +1,20 @@
+{
+	"luci-mod-system-flash": {
+		"description": "Grant access to OTA firmware update",
+		"read": {
+			"file": {
+				"/usr/sbin/ota-update check": [ "exec" ],
+				"/usr/sbin/ota-update current": [ "exec" ]
+			},
+			"ubus": {
+				"file": [ "exec" ]
+			}
+		},
+		"write": {
+			"file": {
+				"/usr/sbin/ota-update download *": [ "exec" ],
+				"/usr/sbin/ota-update verify *": [ "exec" ]
+			}
+		}
+	}
+}

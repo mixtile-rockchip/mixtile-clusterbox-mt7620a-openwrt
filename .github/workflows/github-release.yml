@@ -17,8 +17,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Download latest build artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: main.yml
+          workflow_conclusion: success
+          name: openwrt_image
+          path: output
+          if_no_artifact_found: warn
+
+      # Only upload .bin firmware file as release asset
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          prerelease: true
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            output/*.bin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
