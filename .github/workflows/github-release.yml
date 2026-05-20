@@ -14,6 +14,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Generate date-based tag
+        id: tag
+        run: echo "name=v$(date '+%Y%m%d')" >> "$GITHUB_OUTPUT"
+
       - name: Download firmware artifacts from build
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -26,11 +30,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          target_commitish: ${{ github.sha }}
           draft: false
           prerelease: false
           generate_release_notes: true
           files: |
-            output/output/*.bin
-            output/bin/targets/ramips/mt7620/*sysupgrade*.bin
+            output/bin/targets/ramips/mt7620/*sysupgrade-sd.bin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
