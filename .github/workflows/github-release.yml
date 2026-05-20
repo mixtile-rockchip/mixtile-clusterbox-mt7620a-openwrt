@@ -30,6 +30,7 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            output/*.bin
+            output/output/*.bin
+            output/bin/targets/ramips/mt7620/*sysupgrade*.bin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
