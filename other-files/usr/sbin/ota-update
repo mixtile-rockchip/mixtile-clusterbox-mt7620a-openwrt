@@ -1,0 +1,146 @@
+#!/bin/sh
+#
+# OTA firmware update for Mixtile ClusterBox
+# Date-based version check (YYYYMMDD) + SHA256 verification via GitHub API asset digest
+# Foreground download (BusyBox ash kills bg processes on script exit)
+
+GITHUB_REPO="mixtile-rockchip/mixtile-clusterbox-mt7620a-openwrt"
+API_RELEASES="https://api.github.com/repos/$GITHUB_REPO/releases"
+VERSION_FILE="/etc/openwrt_release"
+
+_ok()  { echo '{"status":"ok"'; }
+_err() { echo '{"status":"error"'; }
+
+get_current_date() {
+	grep 'DISTRIB_DESCRIPTION' "$VERSION_FILE" 2>/dev/null | tr -d "'\"" | grep -oE '[0-9]{8}' | tail -1
+}
+iso_to_date()    { echo "$1" | sed 's/T.*//; s/-//g'; }
+extract_sha256() { echo "$1" | sed 's/^sha256://'; }
+format_date() {
+	local d="$1"; [ ${#d} -eq 8 ] && echo "$d" | sed 's/\(....\)\(..\)\(..\)/\1-\2-\3/' || echo "$d"
+}
+sanitize_body() {
+	echo "$1" | tr -d '\000-\010\013\014\016-\037' | head -c 2048 | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' '
+}
+
+get_releases() { uclient-fetch -q -O- "$API_RELEASES" 2>/dev/null; }
+list_asset_names() { echo "$1" | jsonfilter -e '@.assets[*].name' 2>/dev/null; }
+
+# ---- check ----
+
+cmd_check() {
+	local current_date releases_json latest_release tag_name published_at rel_url body
+	local dl_url size digest expected_sha256 release_date update_available
+
+	current_date=$(get_current_date)
+	[ -n "$current_date" ] && [ ${#current_date} -eq 8 ] || { _err; echo ',"message":"Unable to determine current firmware date"}'; return 1; }
+
+	releases_json=$(get_releases)
+	[ $? -eq 0 ] && [ -n "$releases_json" ] || { _err; echo ',"message":"Unable to fetch release information."}'; return 1; }
+
+	[ "$releases_json" = "[]" ] || [ "$releases_json" = "[ ]" ] && {
+		_ok; echo ',"current_date":"'"$current_date"'","current_date_formatted":"'"$(format_date "$current_date")"'","message":"No firmware releases yet."}'; return 0; }
+
+	latest_release=$(echo "$releases_json" | jsonfilter -e '@[0]' 2>/dev/null)
+	[ -n "$latest_release" ] || { _ok; echo ',"current_date":"'"$current_date"'","message":"No firmware releases yet."}'; return 0; }
+
+	tag_name=$(echo "$latest_release" | jsonfilter -e '@.tag_name' 2>/dev/null)
+	published_at=$(echo "$latest_release" | jsonfilter -e '@.published_at' 2>/dev/null)
+	rel_url=$(echo "$latest_release" | jsonfilter -e '@.html_url' 2>/dev/null)
+	body=$(echo "$latest_release" | jsonfilter -e '@.body' 2>/dev/null)
+
+	# Find sysupgrade .bin asset
+	local asset_names i=0
+	asset_names=$(list_asset_names "$latest_release")
+	for name in $asset_names; do
+		case "$name" in *sysupgrade*.bin|*squashfs*.bin|*-sd.bin)
+			dl_url=$(echo "$latest_release" | jsonfilter -e "@.assets[$i].browser_download_url" 2>/dev/null)
+			size=$(echo "$latest_release" | jsonfilter -e "@.assets[$i].size" 2>/dev/null)
+			digest=$(echo "$latest_release" | jsonfilter -e "@.assets[$i].digest" 2>/dev/null)
+			break ;;
+		esac
+		i=$((i + 1))
+	done
+	[ -n "$dl_url" ] || { _err; echo ',"message":"No suitable firmware image found."}'; return 1; }
+	case "$dl_url" in https://*) ;; *) _err; echo ',"message":"Invalid download URL scheme"}'; return 1 ;; esac
+
+	release_date=$(iso_to_date "$published_at")
+	[ -n "$release_date" ] && [ ${#release_date} -eq 8 ] || { _err; echo ',"message":"Unable to determine release date"}'; return 1; }
+
+	expected_sha256=$(extract_sha256 "$digest")
+	[ -n "$expected_sha256" ] && [ ${#expected_sha256} -eq 64 ] || { _err; echo ',"message":"No SHA256 digest found for firmware asset"}'; return 1; }
+
+	update_available="false"
+	[ "$release_date" -gt "$current_date" ] && update_available="true"
+
+	local body_safe
+	body_safe=$(sanitize_body "$body")
+
+	cat <<EOJSON
+{"status":"ok","current_date":"$current_date","current_date_formatted":"$(format_date "$current_date")","release_date":"$release_date","release_date_formatted":"$(format_date "$release_date")","tag_name":"$tag_name","update_available":$update_available,"size":${size:-0},"download_url":"$dl_url","release_url":"$rel_url","expected_sha256":"$expected_sha256","release_notes":"$body_safe"}
+EOJSON
+}
+
+# ---- download (foreground, blocking) ----
+
+cmd_download() {
+	local url="$1"
+	[ -n "$url" ] || { _err; echo ',"message":"No download URL provided"}'; return 1; }
+	case "$url" in https://*) ;; *) _err; echo ',"message":"Invalid download URL scheme"}'; return 1 ;; esac
+
+	rm -f /tmp/firmware.bin /tmp/firmware.bin.tmp
+
+	uclient-fetch -q --timeout=300 -O /tmp/firmware.bin.tmp "$url" 2>/dev/null
+	local code=$?
+
+	[ $code -eq 0 ] && [ -f /tmp/firmware.bin.tmp ] && [ -s /tmp/firmware.bin.tmp ] || {
+		rm -f /tmp/firmware.bin.tmp
+		_err; echo ',"message":"Download failed. Check network connection."}'; return 1; }
+
+	mv /tmp/firmware.bin.tmp /tmp/firmware.bin
+
+	local fsize
+	fsize=$(stat -c%s /tmp/firmware.bin 2>/dev/null || wc -c < /tmp/firmware.bin | tr -d ' ')
+
+	cat <<EOJSON
+{"status":"downloaded","file":"/tmp/firmware.bin","size":$fsize}
+EOJSON
+}
+
+# ---- verify (SHA256 check, may be slow on MIPS) ----
+
+cmd_verify() {
+	local expected_sha256="$1"
+	[ -n "$expected_sha256" ] && [ ${#expected_sha256} -eq 64 ] || { _err; echo ',"message":"Invalid expected SHA256"}'; return 1; }
+	[ -f /tmp/firmware.bin ] || { _err; echo ',"message":"Firmware file not found. Download first."}'; return 1; }
+
+	local sha256hash
+	sha256hash=$(sha256sum /tmp/firmware.bin 2>/dev/null | awk '{print $1}')
+
+	if [ "$sha256hash" = "$expected_sha256" ]; then
+		cat <<EOJSON
+{"status":"verified","sha256":"$sha256hash","sha256_match":true}
+EOJSON
+	else
+		rm -f /tmp/firmware.bin
+		_err; echo ',"message":"SHA256 checksum mismatch. File may be corrupted or tampered.","expected":"'"$expected_sha256"'","actual":"'"$sha256hash"'"}'; return 1
+	fi
+}
+
+cmd_current() {
+	local d desc
+	d=$(get_current_date)
+	desc=$(grep 'DISTRIB_DESCRIPTION' "$VERSION_FILE" 2>/dev/null | cut -d= -f2 | tr -d "'\"")
+
+	cat <<EOJSON
+{"date":"$d","date_formatted":"$(format_date "$d")","description":"$desc"}
+EOJSON
+}
+
+case "${1:-}" in
+	check)    cmd_check ;;
+	download) cmd_download "$2" ;;
+	verify)   cmd_verify "$2" ;;
+	current)  cmd_current ;;
+	*) echo "Usage: $0 {check|download <url>|verify <sha256>|current}"; exit 1 ;;
+esac
