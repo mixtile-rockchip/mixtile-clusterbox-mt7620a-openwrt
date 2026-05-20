@@ -1,23 +1,20 @@
-name: Create GitHub release
-
-permissions:
-  contents: write
+name: Build ClusterBox V120 Firmware
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
-  group: release-${{ github.ref }}
+  group: clusterbox-v120-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   FORCE_UNSAFE_CONFIGURE: "1"
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
 
@@ -81,20 +78,22 @@ jobs:
       - name: Verify firmware output
         run: |
           test -f bin/targets/ramips/mt7620/openwrt-ramips-mt7620-cluster-box-control-V120-squashfs-sysupgrade-sd.bin
+          test -s output/image-release-clusterbox-openwrt23-$(date '+%Y%m%d').bin
 
-      - name: Generate date-based tag
-        id: tag
-        run: echo "name=v$(date '+%Y%m%d')" >> "$GITHUB_OUTPUT"
+      - name: Generate artifact manifest
+        run: |
+          mkdir -p output
+          find output -maxdepth 1 -type f | sort > output/artifacts.txt
+          sha256sum output/* > output/sha256sums.txt
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          target_commitish: ${{ github.sha }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          files: |
-            bin/targets/ramips/mt7620/*sysupgrade-sd.bin
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: clusterbox-v120-firmware
+          if-no-files-found: error
+          path: |
+            output/*
+            bin/targets/ramips/mt7620/*.bin
+            bin/targets/ramips/mt7620/*.manifest
+            bin/targets/ramips/mt7620/*.buildinfo
+            bin/targets/ramips/mt7620/*.json

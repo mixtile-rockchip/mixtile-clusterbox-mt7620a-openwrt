@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 export FORCE_UNSAFE_CONFIGURE=1
 
 CMD=`realpath $0`
@@ -84,10 +86,9 @@ function build_all()
 	echo "============Start building all============"
 	echo "=========================================="
 	make -j1 V=s
-	if [ ! -d output ];then
-		mkdir output
-	fi
-	cp $TARGET_BIN $COMMON_DIR/output/image-release-clusterbox-openwrt23-$(date '+%Y%m%d').bin
+	[ -f "$TARGET_BIN" ]
+	mkdir -p output
+	cp "$TARGET_BIN" "$COMMON_DIR/output/image-release-clusterbox-openwrt23-$(date '+%Y%m%d').bin"
 }
 
 function build_firmware()
@@ -96,17 +97,18 @@ function build_firmware()
 	echo "=========================================="
 
 	if [ ! -f first_run ]; then
-		feeds_update && feeds_install && make download -j8
+		feeds_update
+		feeds_install
+		make download -j8
 		touch first_run
 	fi
 
-	cp $COMMON_DIR/other-files $COMMON_DIR/files -a
+	trap 'rm -rf "$COMMON_DIR/files"' RETURN
+	cp -a "$COMMON_DIR/other-files" "$COMMON_DIR/files"
 	make -j1 V=s
-	if [ ! -d output ];then
-		mkdir output
-	fi
-	cp $TARGET_BIN $COMMON_DIR/output/image-release-clusterbox-openwrt23-$(date '+%Y%m%d').bin
-	rm -rf $COMMON_DIR/files
+	[ -f "$TARGET_BIN" ]
+	mkdir -p output
+	cp "$TARGET_BIN" "$COMMON_DIR/output/image-release-clusterbox-openwrt23-$(date '+%Y%m%d').bin"
 }
 
 function build_kernel()
