@@ -84,9 +84,9 @@ jobs:
 
       - name: Generate artifact manifest
         run: |
-          mkdir -p output
-          find output -maxdepth 1 -type f | sort > output/artifacts.txt
-          sha256sum output/* > output/sha256sums.txt
+          sudo mkdir -p output
+          sudo find output -maxdepth 1 -type f | sort | sudo tee output/artifacts.txt
+          sudo sha256sum output/* | sudo tee output/sha256sums.txt > /dev/null
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
