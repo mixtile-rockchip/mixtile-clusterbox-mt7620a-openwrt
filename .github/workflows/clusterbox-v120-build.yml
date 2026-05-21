@@ -75,7 +75,7 @@ jobs:
       - name: Build firmware
         run: |
           touch first_run
-          ./build.sh firmware
+          sudo ./build.sh firmware
 
       - name: Verify firmware output
         run: |
