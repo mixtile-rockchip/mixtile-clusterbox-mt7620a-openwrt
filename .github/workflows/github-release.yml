@@ -61,14 +61,16 @@ jobs:
             python3-setuptools rsync unzip zlib1g-dev file wget swig ccache \
             subversion xsltproc zstd time
 
-      - name: Select board config
-        run: ./build.sh cluster-box-config
-
       - name: Prepare feeds
         run: |
           ./build.sh feeds_update
           ./build.sh feeds_install
-          make defconfig
+
+      - name: Select board config
+        run: ./build.sh cluster-box-config
+
+      - name: Normalize config
+        run: make defconfig
 
       - name: Download sources
         run: make download -j"$(nproc)"
